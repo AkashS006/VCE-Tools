@@ -79,12 +79,12 @@
   <script>
     // Auth
     const user = sessionStorage.getItem('username');
-    if (!user) location.href='login.html';
+    if (!user) location.href='index.html';
     document.getElementById('who').innerText = user;
 
     // Nav
     document.getElementById('navLogout').onclick = () => {
-      sessionStorage.clear(); location.href='login.html';
+      sessionStorage.clear(); location.href='index.html';
     };
     document.getElementById('navWrite').onclick = () => {
       if (user==='Akash') location.href='write.html';
