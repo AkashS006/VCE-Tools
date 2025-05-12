@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tools – Entry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap 5 + Chart.js -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --header-bg:     #000;
+      --btn-bg:        #444;
+      --btn-hover-bg:  #666;
+    }
+    #bgvideo {
+      position: fixed;
+      right: 0; bottom: 0;
+      min-width: 100%; min-height: 100%;
+      z-index: -1; object-fit: cover;
+      filter: brightness(0.4);
+    }
+    .navbar {
+      background-color: var(--header-bg) !important;
+    }
+    .navbar .navbar-brand,
+    .navbar .btn {
+      background-color: var(--btn-bg);
+      color: #fff;
+      border: none;
+      margin-right: 0.5rem;
+    }
+    .navbar .navbar-brand:hover,
+    .navbar .btn:hover {
+      background-color: var(--btn-hover-bg) !important;
+    }
+    body { color: #fff; }
+    .form-label { color: #fff; }
+    .form-text.text-success { color: #8FEE90 !important; }
+    .form-text.text-danger { color: #FF6A6A !important; }
+  </style>
+</head>
+<body>
+  <video id="bgvideo" autoplay muted loop>
+    <source src="V1.MP4" type="video/mp4">
+  </video>
+
+  <!-- header -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <h1><a>Tools</a></h1>
+      <div class="d-flex">
+        <a href="dashboard.html" class="btn btn-outline-light me-2">Dashboard</a>
+        <a href="write.html"     class="btn btn-outline-light me-2">Write</a>
+        <a href="entry.html"     class="btn btn-outline-light me-2">Entry</a>
+        <button id="navLogout"   class="btn btn-outline-light">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <h3>Component Entry / Return</h3>
+
+    <!-- choose Steal or Store -->
+    <div class="mb-4">
+      <label class="form-label">Action</label><br>
+      <div class="form-check form-check-inline">
+        <input id="optSteal" name="action" class="form-check-input" type="radio" value="Steal">
+        <label class="form-check-label" for="optSteal">Steal</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input id="optStore" name="action" class="form-check-input" type="radio" value="Store">
+        <label class="form-check-label" for="optStore">Store</label>
+      </div>
+      <div id="errAction" class="text-danger mt-1"></div>
+    </div>
+
+    <!-- Steal section -->
+    <div id="stealSection" style="display:none;">
+      <h5>Steal Component</h5>
+      <div class="mb-3">
+        <label class="form-label">Select Component</label>
+        <select id="selStealComp" class="form-select"></select>
+        <div id="statusSteal" class="form-text"></div>
+        <div id="errSelSteal" class="text-danger"></div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Reason</label>
+        <input id="reasonSteal" class="form-control" type="text">
+        <div id="errReasonSteal" class="text-danger"></div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Expected Return</label>
+        <input id="retTimeSteal" class="form-control" type="datetime-local">
+        <div id="errRetTimeSteal" class="text-danger"></div>
+      </div>
+      <button id="btnDoSteal" class="btn btn-primary">Confirm Steal</button>
+    </div>
+
+    <!-- Store section -->
+    <div id="storeSection" style="display:none;">
+      <h5>Return Component</h5>
+      <div class="mb-3">
+        <label class="form-label">Select Component</label>
+        <select id="selStoreComp" class="form-select"></select>
+        <div id="statusStore" class="form-text"></div>
+        <div id="errSelStore" class="text-danger"></div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Returning Location</label>
+        <input id="returnLoc" class="form-control" type="text">
+        <div id="errReturnLoc" class="text-danger"></div>
+      </div>
+      <div id="lateReasonGroup" class="mb-3" style="display:none;">
+        <label class="form-label text-danger-label">
+          Reason (late or different returner)
+        </label>
+        <input id="reasonStore" class="form-control" type="text">
+        <div id="errReasonStore" class="text-danger"></div>
+      </div>
+      <button id="btnDoStore" class="btn btn-success">Confirm Store</button>
+    </div>
+
+    <hr class="my-4">
+
+    <!-- Admin controls -->
+    <div id="adminControls" style="display:none;">
+      <h5>Admin</h5>
+      <button id="btnClear"  class="btn btn-danger me-2">Clear All Data</button>
+      <button id="btnExport" class="btn btn-info text-white">Export + Chart</button>
+      <div class="mt-4"><canvas id="chart" height="150"></canvas></div>
+    </div>
+  </div>
+
+  <script>
+    // Auth
+    const user = sessionStorage.getItem('username');
+    if (!user) location.href = 'login.html';
+    document.getElementById('navLogout').onclick = ()=>{
+      sessionStorage.clear(); location.href='login.html';
+    };
+
+    const compsKey = 'components';
+    const entKey   = 'entries';
+
+    // DOM shortcuts
+    const optSteal = document.getElementById('optSteal'),
+          optStore = document.getElementById('optStore'),
+          sSec     = document.getElementById('stealSection'),
+          rSec     = document.getElementById('storeSection'),
+          selS     = document.getElementById('selStealComp'),
+          selR     = document.getElementById('selStoreComp'),
+          statS    = document.getElementById('statusSteal'),
+          statR    = document.getElementById('statusStore'),
+          lateGrp  = document.getElementById('lateReasonGroup');
+
+    // Error containers
+    const eAction       = document.getElementById('errAction'),
+          eSelSteal     = document.getElementById('errSelSteal'),
+          eReasonSteal  = document.getElementById('errReasonSteal'),
+          eRetSteal     = document.getElementById('errRetTimeSteal'),
+          eSelStore     = document.getElementById('errSelStore'),
+          eReturnLoc    = document.getElementById('errReturnLoc'),
+          eReasonStore  = document.getElementById('errReasonStore');
+
+    // Populate selects
+    function refreshLists(){
+      const arr = JSON.parse(localStorage.getItem(compsKey)||'[]');
+      selS.innerHTML = '<option value="">-- select --</option>';
+      selR.innerHTML = '<option value="">-- select --</option>';
+      arr.forEach((c,i)=>{
+        const txt = `${c.name} (${c.id}) [${c.status||'Available'}]`;
+        selS.add(new Option(txt,i));
+        selR.add(new Option(txt,i));
+      });
+      [eAction,eSelSteal,eReasonSteal,eRetSteal,
+       eSelStore,eReturnLoc,eReasonStore].forEach(x=>x.innerText='');
+      statS.innerText=''; statS.className='form-text';
+      statR.innerText=''; statR.className='form-text';
+      lateGrp.style.display='none';
+    }
+    refreshLists();
+
+    // Show/hide
+    optSteal.onchange = ()=>{ eAction.innerText=''; sSec.style.display='block'; rSec.style.display='none'; };
+    optStore.onchange = ()=>{ eAction.innerText=''; sSec.style.display='none'; rSec.style.display='block'; };
+
+    // Steal select status
+    selS.onchange = ()=>{
+      eSelSteal.innerText='';
+      const idx = selS.value;
+      if(!idx){ statS.innerText=''; return; }
+      const arr = JSON.parse(localStorage.getItem(compsKey)||'[]'), c = arr[idx];
+      if(c.status==='In Use'){
+        statS.className='form-text text-danger';
+        const ent = JSON.parse(localStorage.getItem(entKey)||'[]');
+        const last = ent.slice().reverse()
+          .find(e=>e.componentId===c.id && e.action==='Steal');
+        const who = last? last.user:'unknown';
+        const why = last? last.reason:'';
+        statS.innerText = `Currently taken by ${who}. Reason: ${why}`;
+      } else {
+        statS.className='form-text text-success';
+        statS.innerText = 'Available';
+      }
+    };
+
+    // Store select status
+    selR.onchange = ()=>{
+      eSelStore.innerText='';
+      statR.innerText=''; statR.className='form-text';
+      lateGrp.style.display='none';
+      eReasonStore.innerText='';
+
+      const idx = selR.value;
+      if(!idx){ statR.innerText=''; return; }
+      const arr = JSON.parse(localStorage.getItem(compsKey)||'[]'),
+            ent = JSON.parse(localStorage.getItem(entKey)||'[]'),
+            c   = arr[idx];
+      if(c.status!=='In Use'){
+        statR.className='form-text text-success';
+        statR.innerText='Component is Available (cannot store)';
+        return;
+      }
+      const last = ent.slice().reverse()
+        .find(e=>e.componentId===c.id && e.action==='Steal');
+      const who = last? last.user:'unknown';
+      const why = last? last.reason:'';
+      statR.className='form-text text-danger';
+      statR.innerText = `Taken by ${who}. Reason: ${why}`;
+
+      // late or different user?
+      const exp = new Date(last.returnTimestamp), now = new Date();
+      if(who !== user || now > exp){
+        lateGrp.style.display='block';
+      }
+    };
+
+    // Do Steal
+    document.getElementById('btnDoSteal').onclick = ()=>{
+      [eAction,eSelSteal,eReasonSteal,eRetSteal].forEach(x=>x.innerText='');
+      if(!optSteal.checked){
+        eAction.innerText='Choose Steal/Store'; return;
+      }
+      const idx = selS.value;
+      if(!idx){ eSelSteal.innerText='Select component'; return; }
+      const arr = JSON.parse(localStorage.getItem(compsKey)||'[]'), c = arr[idx];
+      if(c.status==='In Use'){
+        eSelSteal.innerText='Component already in use'; return;
+      }
+      const rsn = document.getElementById('reasonSteal').value.trim(),
+            rt  = document.getElementById('retTimeSteal').value;
+      if(!rsn){ eReasonSteal.innerText='Enter reason'; return; }
+      if(!rt){ eRetSteal.innerText='Enter return date/time'; return; }
+
+      const ent = JSON.parse(localStorage.getItem(entKey)||'[]');
+      ent.push({
+        componentId:    c.id,
+        componentName:  c.name,
+        user,
+        action:         'Steal',
+        reason:         rsn,
+        timestamp:      new Date().toLocaleString(),
+        returnTimestamp:new Date(rt).toLocaleString(),
+        location:       c.location
+      });
+      localStorage.setItem(entKey, JSON.stringify(ent));
+      c.status = 'In Use';
+      localStorage.setItem(compsKey, JSON.stringify(arr));
+      refreshLists();
+    };
+
+    // Do Store
+    document.getElementById('btnDoStore').onclick = ()=>{
+      [eAction,eSelStore,eReturnLoc,eReasonStore].forEach(x=>x.innerText=''); 
+      if(!optStore.checked){
+        eAction.innerText='Choose Steal/Store'; return;
+      }
+      const idx = selR.value;
+      if(!idx){ eSelStore.innerText='Select component'; return; }
+      const arr = JSON.parse(localStorage.getItem(compsKey)||'[]'),
+            ent = JSON.parse(localStorage.getItem(entKey)||'[]'),
+            c   = arr[idx];
+      if(c.status!=='In Use'){
+        eSelStore.innerText='Component not in use'; return;
+      }
+      const loc = document.getElementById('returnLoc').value.trim();
+      if(!loc){ eReturnLoc.innerText='Enter returning location'; return; }
+      let extraReason = '';
+      if(lateGrp.style.display==='block'){
+        const rs2 = document.getElementById('reasonStore').value.trim();
+        if(!rs2){ eReasonStore.innerText='Enter reason'; return; }
+        extraReason = rs2;
+      }
+      ent.push({
+        componentId:    c.id,
+        componentName:  c.name,
+        user,
+        action:         'Store',
+        reason:         extraReason,
+        timestamp:      new Date().toLocaleString(),
+        returnTimestamp:'',
+        location:       loc
+      });
+      localStorage.setItem(entKey, JSON.stringify(ent));
+      c.status   = 'Available';
+      c.location = loc;
+      localStorage.setItem(compsKey, JSON.stringify(arr));
+      refreshLists();
+    };
+
+    // Admin controls
+    if(user==='Akash'){
+      document.getElementById('adminControls').style.display='block';
+      document.getElementById('btnClear').onclick = ()=>{
+        if(confirm('Erase ALL data?')){
+          localStorage.removeItem(compsKey);
+          localStorage.removeItem(entKey);
+          refreshLists();
+        }
+      };
+      document.getElementById('btnExport').onclick = ()=>{
+        const ent = JSON.parse(localStorage.getItem(entKey)||'[]');
+        if(!ent.length) return alert('No entries');
+        const hdr  = Object.keys(ent[0]).join(',')+'\r\n';
+        const rows = ent.map(r=>Object.values(r)
+                      .map(v=>`"${(''+v).replace(/"/g,'""')}"`).join(','))
+                       .join('\r\n');
+        const blob = new Blob([hdr+rows],{type:'text/csv'});
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href=url; a.download='entries.csv'; a.click();
+        URL.revokeObjectURL(url);
+        const cnt = {};
+        ent.forEach(d=> cnt[d.componentName]=(cnt[d.componentName]||0)+1);
+        new Chart(document.getElementById('chart').getContext('2d'),{
+          type:'bar',
+          data:{ labels:Object.keys(cnt),
+                 datasets:[{ data:Object.values(cnt),
+                             backgroundColor:'#1A5090' }]},
+          options:{plugins:{legend:{display:false}},
+                   scales:{y:{beginAtZero:true}}}
+        });
+      };
+    }
+  </script>
+</body>
+</html>

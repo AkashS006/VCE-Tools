@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tools – Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --header-bg:     #000;
+      --btn-bg:        #444;
+      --btn-hover-bg:  #666;
+    }
+    /* background video */
+    #bgvideo {
+      position: fixed;
+      right: 0; bottom: 0;
+      min-width: 100%; min-height: 100%;
+      z-index: -1; object-fit: cover;
+      filter: brightness(0.4);
+    }
+    /* header */
+    .navbar {
+      background-color: var(--header-bg) !important;
+    }
+    .navbar .navbar-brand,
+    .navbar .btn {
+      background-color: var(--btn-bg);
+      color: #fff;
+      border: none;
+      margin-right: 0.5rem;
+    }
+    .navbar .navbar-brand:hover,
+    .navbar .btn:hover {
+      background-color: var(--btn-hover-bg) !important;
+    }
+    /* text */
+    body {
+      color: #fff;
+    }
+    .table th, .table td {
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <video id="bgvideo" autoplay muted loop>
+    <source src="V1.MP4" type="video/mp4">
+  </video>
+
+  <!-- header -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <h1><a>Tools</a></h1>
+      <div class="d-flex">
+        <button id="navDash"  class="btn">Dashboard</button>
+        <button id="navWrite" class="btn">Write</button>
+        <button id="navEntry" class="btn">Entry</button>
+        <button id="navLogout" class="btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <h4>Welcome, <span id="who"></span></h4>
+    <p class="text-white-50">List of Components:</p>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr><th>S.No</th><th>Name</th><th>ID</th><th>Location</th><th>Status</th></tr>
+        </thead>
+        <tbody id="compBody"></tbody>
+      </table>
+      <div id="noComps" class="text-center text-white-50"></div>
+    </div>
+  </div>
+
+  <script>
+    // Auth
+    const user = sessionStorage.getItem('username');
+    if (!user) location.href='login.html';
+    document.getElementById('who').innerText = user;
+
+    // Nav
+    document.getElementById('navLogout').onclick = () => {
+      sessionStorage.clear(); location.href='login.html';
+    };
+    document.getElementById('navWrite').onclick = () => {
+      if (user==='Akash') location.href='write.html';
+      else alert('Only Akash can write components.');
+    };
+    document.getElementById('navEntry').onclick = () => location.href='entry.html';
+
+    // Load components
+    const comps = JSON.parse(localStorage.getItem('components')||'[]');
+    const tbody = document.getElementById('compBody');
+    if (!comps.length) {
+      document.getElementById('noComps').innerText = 'No components defined yet.';
+    } else {
+        comps.forEach(c => {
+  const tr = document.createElement('tr');
+  // determine status text & color
+  const status = c.status || 'Available';
+  const colorClass = status === 'Available'
+    ? 'text-success'
+    : 'text-danger';
+  tr.innerHTML = `
+    <td>${c.sno}</td>
+    <td>${c.name}</td>
+    <td>${c.id}</td>
+    <td>${c.location}</td>
+    <td class="${colorClass}">${status}</td>
+  `;
+  tbody.append(tr);
+});
+
+    }
+  </script>
+</body>
+</html>
