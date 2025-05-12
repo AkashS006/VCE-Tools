@@ -99,13 +99,13 @@
   <script>
     // Auth + logout
     const user = sessionStorage.getItem('username');
-    if(!user) location.href='login.html';
+    if(!user) location.href='index.html';
     if(user!=='Akash') {
       alert('Access denied. Only Akash can add/edit components.');
       location.href='dashboard.html';
     }
     document.getElementById('navLogout').onclick = () => {
-      sessionStorage.clear(); location.href='login.html';
+      sessionStorage.clear(); location.href='index.html';
     };
 
     const key = 'components';
