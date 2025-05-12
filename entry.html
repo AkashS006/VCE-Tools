@@ -135,9 +135,9 @@
   <script>
     // Auth
     const user = sessionStorage.getItem('username');
-    if (!user) location.href = 'login.html';
+    if (!user) location.href = 'index.html';
     document.getElementById('navLogout').onclick = ()=>{
-      sessionStorage.clear(); location.href='login.html';
+      sessionStorage.clear(); location.href='index.html';
     };
 
     const compsKey = 'components';
